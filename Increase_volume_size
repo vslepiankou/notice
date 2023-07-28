@@ -1,0 +1,87 @@
+#Check disc space
+df -h
+
+#Find new disc
+lsblk
+or
+ll /dev/sd*
+
+#formating
+fdisk /dev/sde
+n
+p
+default
+default
+default
+w
+
+fdisk /dev/sde
+###
+Welcome to fdisk (util-linux 2.32.1).
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+Device does not contain a recognized partition table.
+Created a new DOS disklabel with disk identifier 0x86eee0be.
+
+Command (m for help): n
+Partition type
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended (container for logical partitions)
+Select (default p): p
+Partition number (1-4, default 1):
+First sector (2048-419430399, default 2048):
+Last sector, +sectors or +size{K,M,G,T,P} (2048-419430399, default 419430399):
+
+Created a new partition 1 of type 'Linux' and of size 200 GiB.
+
+Command (m for help): w
+The partition table has been altered.
+Calling ioctl() to re-read partition table.
+Syncing disks.
+###
+
+#Find new patrition
+lsblk
+or
+ll /dev/sd*
+
+#Finf volume group
+sudo vgscan
+  Found volume group "VolGroup00" using metadata type lvm2
+
+#check all volume groups
+sudo vgs
+  VG         #PV #LV #SN Attr   VSize   VFree
+  VolGroup00   2   1   0 wz--n- 999.99g    0
+
+#Extend volume group
+sudo vgextend /dev/VolGroup00 /dev/sde1
+  Physical volume "/dev/sde1" successfully created.
+  Volume group "VolGroup00" successfully extended
+
+#check that our volume groups was extended
+sudo vgs
+  VG         #PV #LV #SN Attr   VSize VFree
+  VolGroup00   3   1   0 wz--n- 1.17t <200.00g
+
+#Find "vol_databases" via lsblk for example:
+sdd                            8:48   0  800G  0 disk
+└─sdd1                         8:49   0  800G  0 part
+  └─VolGroup00-vol_databases 253:0    0 1000G  0 lvm  /u0
+)
+
+#Increase size our volume group
+sudo lvresize -l+100%PV /dev/VolGroup00/vol_databases /dev/sde1
+  Size of logical volume VolGroup00/vol_databases changed from 999.99 GiB (255998 extents) to 1.17 TiB (307197 extents).
+  Logical volume VolGroup00/vol_databases successfully resized.
+
+#Increase size our volume group
+sudo resize2fs /dev/VolGroup00/vol_databases
+  resize2fs 1.45.6 (20-Mar-2020)
+  Filesystem at /dev/VolGroup00/vol_databases is mounted on /u01; on-line resizing required
+  old_desc_blocks = 125, new_desc_blocks = 150
+  The filesystem on /dev/VolGroup00/vol_databases is now 314569728 (4k) blocks long.
+
+#Check result
+df -h
